@@ -4,6 +4,7 @@ Play = function(){
 }
 
 Play.prototype.init = function(){
+  this.score = 0;
   this.game.renderer.renderSession.roundPixels = true;
   this.game.world.setBounds(0, 0, GAME.width, GAME.height)
   this.physics.startSystem(Phaser.Physics.ARCADE)
@@ -17,12 +18,12 @@ Play.prototype.init = function(){
   this.lasersShot = 0;
 }
 
-Play.prototype.preload = function(){
-  this.load.spritesheet('flappy', './assets/images/flappy.png', 92, 66);
+Play.prototype.preload = function(){  this.load.spritesheet('flappy', './assets/images/flappy.png', 92, 66);
   this.load.image('pipe', './assets/images/pipe.png');
   this.load.image('bg-tile', './assets/images/bg.png');
   this.load.image('top pipe', './assets/images/top_pipe.png');
   this.load.image('laser', './assets/images/laser.png')
+  this.load.image('shroom', './assets/images/target.png');
 }
 
 Play.prototype.create = function(){
@@ -47,6 +48,7 @@ Play.prototype.create = function(){
   var that = this;
   this.game.time.events.loop(Phaser.Timer.SECOND * 1.5, function(){
     that.spawnPipe(that.pipes, that);
+    that.spawnShroom(that.shrooms, that);
   })
   // this.spawnPipe(this.pipes, this);
 
@@ -62,6 +64,18 @@ Play.prototype.create = function(){
       that.createLaser();
     }
   }
+  this.shrooms = this.add.group();
+  this.shrooms.enableBody = true;
+  
+  this.scoreText = this.add.text(20, 20, 'Score: 0', { fontSize: 20, fill: '#000'})
+}
+
+Play.prototype.spawnShroom = function(group, that){
+  var ranHeight = that.rnd.integerInRange(GAME.height * .2, GAME.height * .8);
+  var shroom = that.shrooms.create(800, ranHeight, 'shroom')
+  shroom.scale.set(.4, .4);
+  shroom.body.velocity.x = -200;
+  shroom.body.allowGravity = false;
 }
 
 Play.prototype.spawnPipe = function(group, that){
@@ -81,9 +95,11 @@ Play.prototype.spawnPipe = function(group, that){
 }
 
 Play.prototype.update = function(){
-  this.physics.arcade.collide(this.flappy, this.pipes, this.stopFlappy, null, this);
+  this.physics.arcade.overlap(this.flappy, this.pipes, this.stopFlappy, null, this);
+  this.physics.arcade.overlap(this.flappy, this.shrooms, this.stopFlappy, null, this);
 
-  this.physics.arcade.collide(this.lasers, this.pipes, this.removePipe, null, this);
+  this.physics.arcade.overlap(this.lasers, this.pipes, this.removeLaser, null, this);
+  this.physics.arcade.collide(this.lasers, this.shrooms, this.hitShroom, null, this);
   
   this.checkWorldCol();
   // when space is pressed, start flap animation and add to y velocity
@@ -112,9 +128,16 @@ Play.prototype.createLaser = function(){
 }
 
 
-Play.prototype.removePipe = function(laser, pipe){
+Play.prototype.removeLaser = function(laser, pipe){
   laser.kill();
-  pipe.kill();
+  // pipe.body.velocity.x = -200;
+}
+
+Play.prototype.hitShroom = function(laser, shroom){
+  this.score += 1;
+  this.scoreText.text = "Score: " + this.score;
+  shroom.kill();
+  laser.kill();
 }
 
 Play.prototype.checkWorldCol = function(){
