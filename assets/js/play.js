@@ -13,7 +13,8 @@ Play.prototype.init = function(){
     jump: GAME.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR),
     shoot: GAME.game.input.keyboard.addKey(Phaser.Keyboard.A)
   };
-  this.laserShot = false;
+  this.canShootLaser = true;
+  this.lasersShot = 0;
 }
 
 Play.prototype.preload = function(){
@@ -57,7 +58,7 @@ Play.prototype.create = function(){
   // this.pipes.setAll('allowGravity', false);
   var that = this;
   this.input.keyboard.onUpCallback = function(e){
-    if( e.keyCode === Phaser.Keyboard.A){
+    if( e.keyCode === Phaser.Keyboard.A && that.canShootLaser){
       that.createLaser();
     }
   }
@@ -91,29 +92,27 @@ Play.prototype.update = function(){
     this.flappy.body.velocity.y = -150;
   }
 
-  // if(this.keys.shoot.isDown && !this.laserShot){
-  //   this.createLaser();
-  //   var that = this;
-  //   this.game.time.events.loop(Phaser.Timer.SECOND * 1, function(){
-  //     that.laserShot = false;
-  //   })
-  // }
 }
 
 Play.prototype.createLaser = function(){
-  var x = this.flappy.world.x + 10;
+  this.lasersShot += 1;
+  var x = this.flappy.world.x + 15;
   var y = this.flappy.world.y
   var laser = this.lasers.create(x,y,'laser');
   laser.body.allowGravity = false;
   laser.scale.setTo(.1, .2)
   laser.body.velocity.x = 200;
   this.laserShot = true;
+  var timeTillNext = Math.floor( Math.sqrt(this.lasersShot) * this.lasersShot)
+  var that = this;
+  this.canShootLaser = false;
+  this.game.time.events.loop(Phaser.Timer.SECOND * timeTillNext, function(){
+       that.canShootLaser = true;
+  })
 }
 
 
 Play.prototype.removePipe = function(laser, pipe){
-  console.log(laser);
-  console.log(pipe);
   laser.kill();
   pipe.kill();
 }
