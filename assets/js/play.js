@@ -10,21 +10,25 @@ Play.prototype.init = function(){
   this.physics.arcade.gravity.y = 600;
   this.cursors = this.input.keyboard.createCursorKeys();
   this.keys = {
-    jump: GAME.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR)
+    jump: GAME.game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR),
+    shoot: GAME.game.input.keyboard.addKey(Phaser.Keyboard.A)
   };
+  this.laserShot = false;
 }
 
 Play.prototype.preload = function(){
   this.load.spritesheet('flappy', './assets/images/flappy.png', 92, 66);
   this.load.image('pipe', './assets/images/pipe.png');
   this.load.image('bg-tile', './assets/images/bg.png');
-  this.load.image('top pipe', './assets/images/top_pipe.png')
+  this.load.image('top pipe', './assets/images/top_pipe.png');
+  this.load.image('laser', './assets/images/laser.png')
 }
 
 Play.prototype.create = function(){
   this.bgtile = this.add.tileSprite(0, 0, GAME.width, GAME.height, 'bg-tile');
   // Creating the player and scaling for screen
   this.flappy = this.add.sprite(200, 100, 'flappy')
+
   this.flappy.scale.set(.4, .4);
   // adds flapping animation for player
   this.flappy.animations.add("flap", [2, 1, 0, 1], 10, false)
@@ -44,14 +48,22 @@ Play.prototype.create = function(){
     that.spawnPipe(that.pipes, that);
   })
   // this.spawnPipe(this.pipes, this);
+
+
   
-  
+  this.lasers = this.add.group();
+  this.lasers.enableBody = true;
   // console.log(this.physics.arcade.overlap);
-  // this.pipes.setAll('allowGravity', false);  
+  // this.pipes.setAll('allowGravity', false);
+  var that = this;
+  this.input.keyboard.onUpCallback = function(e){
+    if( e.keyCode === Phaser.Keyboard.A){
+      that.createLaser();
+    }
+  }
 }
 
 Play.prototype.spawnPipe = function(group, that){
-  console.log('hey');
   var ranHeight = that.rnd.integerInRange(GAME.height * .5, GAME.height * .8);
   var ranDiff = that.rnd.integerInRange(30, 60);
   var oppHeight = ranHeight - GAME.height + ranDiff;
@@ -68,14 +80,42 @@ Play.prototype.spawnPipe = function(group, that){
 }
 
 Play.prototype.update = function(){
+  this.physics.arcade.collide(this.flappy, this.pipes, this.stopFlappy, null, this);
 
-  this.physics.arcade.collide(this.flappy, this.pipes, this.stopFlappy.bind(this), null, this);
+  this.physics.arcade.collide(this.lasers, this.pipes, this.removePipe, null, this);
+  
   this.checkWorldCol();
   // when space is pressed, start flap animation and add to y velocity
   if(this.keys.jump.isDown){
     this.flappy.animations.play('flap');
     this.flappy.body.velocity.y = -150;
   }
+
+  // if(this.keys.shoot.isDown && !this.laserShot){
+  //   this.createLaser();
+  //   var that = this;
+  //   this.game.time.events.loop(Phaser.Timer.SECOND * 1, function(){
+  //     that.laserShot = false;
+  //   })
+  // }
+}
+
+Play.prototype.createLaser = function(){
+  var x = this.flappy.world.x + 10;
+  var y = this.flappy.world.y
+  var laser = this.lasers.create(x,y,'laser');
+  laser.body.allowGravity = false;
+  laser.scale.setTo(.1, .2)
+  laser.body.velocity.x = 200;
+  this.laserShot = true;
+}
+
+
+Play.prototype.removePipe = function(laser, pipe){
+  console.log(laser);
+  console.log(pipe);
+  laser.kill();
+  pipe.kill();
 }
 
 Play.prototype.checkWorldCol = function(){
